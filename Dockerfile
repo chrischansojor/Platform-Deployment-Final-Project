@@ -66,12 +66,10 @@ FROM base AS production
 RUN apk add --no-cache nginx
 
 COPY nginx-main.conf /etc/nginx/nginx.conf
-COPY nginx.conf /etc/nginx/http.d/default.conf
+COPY nginx-production.conf /etc/nginx/http.d/default.conf
 COPY docker/start-production.sh /usr/local/bin/start-production.sh
 RUN sed -i 's/\r$//' /usr/local/bin/start-production.sh \
     && chmod +x /usr/local/bin/start-production.sh
-
-RUN sed -i 's/set \$php_upstream php:9000;/set \$php_upstream 127.0.0.1:9000;/' /etc/nginx/http.d/default.conf
 
 ENV APP_ENV=prod
 
@@ -79,9 +77,11 @@ RUN APP_ENV=prod APP_SECRET=build_secret \
     DATABASE_URL="sqlite:///%kernel.project_dir%/var/build.db" \
     php bin/console assets:install public --no-interaction \
     && php bin/console importmap:install --no-interaction \
+    && php bin/console asset-map:compile --no-interaction \
     && php bin/console cache:warmup --no-interaction \
     && chown -R www-data:www-data var
 
+# Railway sets PORT at runtime (often 8080); start-production.sh binds to $PORT
 EXPOSE 8080
 
 CMD ["/usr/local/bin/start-production.sh"]
