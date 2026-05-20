@@ -24,15 +24,20 @@ RUN composer install \
 # ---------------------------------------------------------------------------
 # PHP-FPM base (used by docker-compose "php" service)
 # ---------------------------------------------------------------------------
-FROM php:8.2-fpm-alpine AS base
+FROM php:8.3-fpm-alpine AS base
 
 RUN apk add --no-cache \
     icu-dev \
+    icu-libs \
     libzip-dev \
+    libzip \
     oniguruma-dev \
     && docker-php-ext-configure intl \
     && docker-php-ext-install -j"$(nproc)" intl opcache pdo_mysql zip \
     && apk del --no-cache icu-dev libzip-dev oniguruma-dev
+
+# Allow Nginx (separate container) to reach PHP-FPM
+RUN sed -i 's/listen = 127.0.0.1:9000/listen = 0.0.0.0:9000/' /usr/local/etc/php-fpm.d/www.conf
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -41,12 +46,13 @@ WORKDIR /var/www/html
 COPY --from=vendor /app /var/www/html
 
 COPY entrypoint.sh /usr/local/bin/docker-entrypoint
-RUN chmod +x /usr/local/bin/docker-entrypoint
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint \
+    && chmod +x /usr/local/bin/docker-entrypoint
 
 RUN mkdir -p var/cache var/log \
     && chown -R www-data:www-data var
 
-ENTRYPOINT ["docker-entrypoint"]
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/docker-entrypoint"]
 
 FROM base AS fpm
 
@@ -62,9 +68,10 @@ RUN apk add --no-cache nginx
 COPY nginx-main.conf /etc/nginx/nginx.conf
 COPY nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/start-production.sh /usr/local/bin/start-production.sh
-RUN chmod +x /usr/local/bin/start-production.sh
+RUN sed -i 's/\r$//' /usr/local/bin/start-production.sh \
+    && chmod +x /usr/local/bin/start-production.sh
 
-RUN sed -i 's/fastcgi_pass php:9000;/fastcgi_pass 127.0.0.1:9000;/' /etc/nginx/http.d/default.conf
+RUN sed -i 's/set \$php_upstream php:9000;/set \$php_upstream 127.0.0.1:9000;/' /etc/nginx/http.d/default.conf
 
 ENV APP_ENV=prod
 
