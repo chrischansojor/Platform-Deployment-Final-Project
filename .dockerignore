@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env.local
+.env.*.local
+.env.test
+var/
+vendor/
+node_modules/
+.phpunit.cache/
+tests/
+compose-disable.yaml
+compose.override-disable.yaml
+README.md
+*.md
+.DS_Store
+Thumbs.db

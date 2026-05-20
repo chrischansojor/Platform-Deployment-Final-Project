@@ -1,0 +1,8 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+dockerBuildTarget = "production"
+
+[deploy]
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"
