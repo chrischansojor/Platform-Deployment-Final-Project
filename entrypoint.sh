@@ -33,4 +33,8 @@ if [ "$APP_ENV" = "prod" ]; then
   php bin/console cache:warmup
 fi
 
+# PHP-FPM runs as www-data; cache warmup runs as root
+mkdir -p var/cache var/log var/share
+chown -R www-data:www-data var
+
 exec "$@"

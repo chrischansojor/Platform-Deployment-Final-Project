@@ -79,7 +79,8 @@ RUN APP_ENV=prod APP_SECRET=build_secret \
     DATABASE_URL="sqlite:///%kernel.project_dir%/var/build.db" \
     php bin/console assets:install public --no-interaction \
     && php bin/console importmap:install --no-interaction \
-    && php bin/console cache:warmup --no-interaction
+    && php bin/console cache:warmup --no-interaction \
+    && chown -R www-data:www-data var
 
 EXPOSE 8080
 
